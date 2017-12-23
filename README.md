@@ -22,6 +22,10 @@ I have tried setting and tuning the Kp, Ki, Kd parameters manually initially and
 The manual tuning was helpful get a feeling for how the different components affect the driving behaviour. 
 When the manual tuning was enough for the car to at least complete a track, I have added the twiddle algorithm to search for a better solution. And it did get better for a while, but I guess that the objective funtion of minimizing the total cross-track-error isn't perfect, and wait long enought and while the error goes down, the chance for a catastrophic mistake (such as driving off-road) goes up.
 
+## Video
+
+[![video](https://img.youtube.com/vi/SHY7AzCiuvk/0.jpg)](https://youtu.be/SHY7AzCiuvk)
+
 ---
 ## Dependencies
 
