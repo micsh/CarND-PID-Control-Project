@@ -2,7 +2,27 @@
 Self-Driving Car Engineer Nanodegree Program
 
 ---
+## Overview
+---
+The goal of the project is to build a PID controller in C++ and tune its parameters, using the simulator.
+The simulator provides cross-track-error, speed, and steering-angle, and the controller responds to the streaming data with the steering-angle.
+---
+## PID
+PID stands for Proportional, Integral, Differential.
+The PID controller calculates the steering-angle using the cross-track-error in the following way:
+* Proportional:
+  The steering-angle component is proportional to the cross-track-error. This is the main component that generaly aims to correct the cross-track-error.
+* Integral:
+  The steering-angle component is proportional to an assumed constant bias in the cross-track-error. This component does help with constant biases, but if too big, will have an effect of memory when turning.
+* Differential:
+  The steering-angle component is proportional to the change in cross-track-error. This helps with overshooting and also helps smooth the Proportional component.
 
+## Final parameters and Twiddle
+I have tried setting and tuning the Kp, Ki, Kd parameters manually initially and then I have also tried implementing the Twiddle algorithm as suggest in the videos.
+The manual tuning was helpful get a feeling for how the different components affect the driving behaviour. 
+When the manual tuning was enough for the car to at least complete a track, I have added the twiddle algorithm to search for a better solution. And it did get better for a while, but I guess that the objective funtion of minimizing the total cross-track-error isn't perfect, and wait long enought and while the error goes down, the chance for a catastrophic mistake (such as driving off-road) goes up.
+
+---
 ## Dependencies
 
 * cmake >= 3.5

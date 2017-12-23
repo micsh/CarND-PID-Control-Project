@@ -36,7 +36,64 @@ float clip(float n, float lower, float upper)
   return std::max(lower, std::min(n, upper));
 }
 
-double last_timestamp;
+// parameters for the tiddle algorithm
+int current_i;
+double counter;
+double t_error;
+double best_error;
+double dp[] = {0.002, 0.0001, 0.5};
+int stage;
+
+void twiddle(PID &pid)
+{
+  if (best_error == 0)
+  {
+    best_error = t_error;
+  }
+
+  current_i %= 3;
+  double &k = current_i == 0 ? pid.Kp : current_i == 1 ? pid.Ki : pid.Kd;
+
+  switch (stage)
+  {
+  case 0:
+    k += dp[current_i];
+    stage++;
+    break;
+  case 1:
+    if (t_error < best_error)
+    {
+      best_error = t_error;
+      dp[current_i] *= 1.1;
+      current_i++;
+      stage = 0;
+      twiddle(pid);
+    }
+    else
+    {
+      k -= 2 * dp[current_i];
+      stage++;
+    }
+    break;
+  case 2:
+    if (t_error < best_error)
+    {
+      best_error = t_error;
+      dp[current_i] *= 1.05;
+    }
+    else
+    {
+      k += dp[current_i];
+      dp[current_i] *= 0.95;
+    }
+    current_i++;
+    stage = 0;
+    twiddle(pid);
+    break;
+  }
+
+  t_error = 0;
+}
 
 int main()
 {
@@ -44,7 +101,7 @@ int main()
 
   PID pid;
   // TODO: Initialize the pid variable.
-  pid.Init(0.1, 0.003, 3.0);
+  pid.Init(0.5, 0.001, 3.0);
 
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -73,14 +130,25 @@ int main()
           pid.UpdateError(cte);
           steer_value = clip(-pid.TotalError(), -1.1, 1.1);
 
+          counter++;
+          t_error += cte * cte;
+
+          if (counter > 2000 || (best_error > 0 && t_error > best_error))
+          {
+            std::cout << "best error: " << best_error << ", current total error: " << t_error << std::endl;
+            twiddle(pid);
+            std::cout << "updated: Kp: " << pid.Kp << ", Ki: " << pid.Ki << ", Kd: " << pid.Kd << std::endl;
+            counter = 0;
+          }
           // DEBUG
           std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+          //std::cout << "total error: " << t_error << std::endl;
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = 0.3;
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
+          //std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       }
@@ -108,7 +176,8 @@ int main()
     }
   });
 
-  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
+  h.onConnection([&pid](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
+    pid.Init(pid.Kp, pid.Ki, pid.Kd);
     std::cout << "Connected!!!" << std::endl;
   });
 
